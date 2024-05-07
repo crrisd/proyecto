@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda Web</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <h1>relojeria y.o.l.o</h1>
+    <a href="carrito.html">Ir al carrito de compras</a>
+    <a href="login.html">Panel de Administrador</a>
+    <div class="product">
+        <img src="OIP.jpeg" alt="Product 1">
+        <h3>reloj para hombre</h3>
+        <p>$20</p>
+        <button onclick="addToCart('Producto 1', 20)">Agregar al carrito</button>
+    </div>
+    <div class="product">
+        <img src="relojj.jpeg" alt="Product 1">
+        <h3>reloj para hombre</h3>
+        <p>$20</p>
+        <button onclick="addToCart('Producto 1', 20)">Agregar al carrito</button>
+    </div>
+
+    <script>
+        let cartItems = [];
+        let cartTotal = 0;
+
+        function addToCart(productName, price) {
+            cartItems.push({ productName, price });
+            cartTotal += price;
+            updateCart();
+        }
+
+        function updateCart() {
+            const cartItemsElement = document.getElementById('cart-items');
+            const cartTotalElement = document.getElementById('cart-total');
+
+            cartItemsElement.innerHTML = '';
+            cartItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.productName} - $${item.price}`;
+                cartItemsElement.appendChild(li);
+            });
+
+            cartTotalElement.textContent = cartTotal;
+        }
+
+        function checkout() {
+            alert('Compra realizada por un total de $' + cartTotal);
+            cartItems = [];
+            cartTotal = 0;
+            updateCart();
+        }
+    </script>
+</body>
+
+</html>
