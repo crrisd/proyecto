@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Productos</title>
+</head>
+<body>
+    <h1>Lista de Productos</h1>
+    {% for producto in productos %}
+        <div class="producto">
+            <h2>{{ producto}}</h2>
+            <p>{{ producto.description }}</p>
+            <a href="/producto/{{ producto[0] }}">Ver detalle</a>
+        </div>
+       
+    {% endfor %}
+</body>
+</html>
