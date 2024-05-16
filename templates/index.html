@@ -7,15 +7,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda Web</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  
 </head>
 
 <body>
-    <h1>relojeria y.o.l.o</h1>
-    {% if usuario %}
-    <h2>{{usuario.nombre}}</h2>
-    <a href="/logout">cerrar </a>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">Navbar</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="/">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/productos">productos</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">¿quienes somos?</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/carrito">carrito</a>
+              </li>
+              {% if usuario %}
+                {% if usuario.admin =="no" %}
+                 <h2>{{usuario.nombre}}</h2>
+                {% else %}
+                 <a href="/admin"> <h2>{{usuario.nombre}}</h2></a>
+                {% endif %} 
+                <a href="/logout">cerrar </a>
+              {% else %}
+              <li>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#registrationModal">Register</button>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#loginModal">Login</button>
 
-    {% endif %}
+              </li>
+              {% endif %}
+              
+              
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      {% if mensaje %}
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <p>{{ mensaje.mensaje }}</p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+       
+      {% endif %}
+
+      
+
+
+      <div class="modal fade" id="registrationModal" tabindex="-1" aria-labelledby="registrationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"> <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="registrationModalLabel">Registrar usuario</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form action="/registro" method="POST"> <div class="mb-3">
+              
+                  <label for="nombre" class="col-form-label">nombre:</label>
+                  <input type="text" class="form-control" id="nombre" name="nombre" required>
+                </div>
+                <div class="mb-3">
+                  <label for="email" class="col-form-form-label">Email:</label>
+                  <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="mb-3">
+                  <label for="password" class="col-form-label">Password:</label>
+                  <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"> <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="registrationModalLabel">Iniciar session</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form action="/iniciar" method="POST"> <div class="mb-3">
+                <label for="nombre" class="col-form-label">nombre:</label>
+                  <input type="text" class="form-control" id="nombre" name="nombre" required>
+                </div>
+                <div class="mb-3">
+                  <label for="email" class="col-form-form-label">Email:</label>
+                  <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="mb-3">
+                  <label for="password" class="col-form-label">Password:</label>
+                  <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">iniciar</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+
+
+
+
+
+
+
+
+    <h1>relojeria y.o.l.o</h1>
+
+
+    
+
+
 
     <a href="/registro">Panel de Administrador</a>
     <div class="product">
@@ -28,40 +143,10 @@
         <img src="relojj.jpeg" alt="Product 1">
         <h3>reloj para hombre</h3>
         <p>$20</p>
-        <button onclick="addToCart('Producto 1', 20)">Agregar al carrito</button>
     </div>
 
-    <script>
-        let cartItems = [];
-        let cartTotal = 0;
-
-        function addToCart(productName, price) {
-            cartItems.push({ productName, price });
-            cartTotal += price;
-            updateCart();
-        }
-
-        function updateCart() {
-            const cartItemsElement = document.getElementById('cart-items');
-            const cartTotalElement = document.getElementById('cart-total');
-
-            cartItemsElement.innerHTML = '';
-            cartItems.forEach(item => {
-                const li = document.createElement('li');
-                li.textContent = `${item.productName} - $${item.price}`;
-                cartItemsElement.appendChild(li);
-            });
-
-            cartTotalElement.textContent = cartTotal;
-        }
-
-        function checkout() {
-            alert('Compra realizada por un total de $' + cartTotal);
-            cartItems = [];
-            cartTotal = 0;
-            updateCart();
-        }
-    </script>
+       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+ 
 </body>
 
 </html>

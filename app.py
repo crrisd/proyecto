@@ -29,6 +29,7 @@ def load_user(user_id):
     usuario = cursor.fetchone()
     session['usuario_nombre'] = usuario[1]
     session['usuario_email'] = usuario[2]
+    session['mensaje_admin'] = ""
     user = User(usuario[0], usuario[1],usuario[2],usuario[3],usuario[4])
     login_user(user)
     return user
@@ -62,7 +63,7 @@ def registro():
            # Validar datos (opcional)
         if nombre==" " or email=="" or password=="":
             mensaje_error = {'mensaje':"contraseña incorrecta"}
-            return render_template('login.html',mensaje=mensaje_error);
+            return render_template('index.html',mensaje=mensaje_error);
    
         # Insertar usuario en la base de datos
         consulta = f"""
@@ -70,6 +71,7 @@ def registro():
             RETURNING id;
         """
         cursor.execute( consulta)
+        #guardar cambios
         conn.commit()
 
         # Obtener el ID del usuario recién creado
@@ -86,7 +88,7 @@ def registro():
         return redirect("/")
     else:
         # Mostrar formulario de registro
-        return render_template('login.html')
+        return render_template('index.html',mensaje=False)
     
 @app.route('/iniciar', methods=['GET', 'POST'])
 def iniciar():
@@ -95,7 +97,7 @@ def iniciar():
         email = request.form['email']
         password = request.form['password']
 
-        usuario = f"""SELECT * FROM usuarios WHERE correo_electronico = {email} """
+        usuario = f"""SELECT * FROM usuarios WHERE correo_electronico = '{email}' """
         cursor.execute(usuario)
         usuario_all = cursor.fetchone()
 
@@ -104,13 +106,13 @@ def iniciar():
                 load_user(usuario_all[0])
             else :
                 mensaje_error = {'mensaje':"la contraseña esta mal "}
-                return render_template('login.html',mensaje=mensaje_error);
+                return render_template('index.html',mensaje=mensaje_error);
 
        
         return redirect("/")
     else:
         # Mostrar formulario de registro
-        return render_template('login.html')
+        return render_template('login.html',mensaje=False)
     
 
 
@@ -126,7 +128,6 @@ def logout():
 
 
 @app.route("/productos", methods=["GET"])
-@login_required
 def mostrar_productos():
 
     nombre = request.args.get("nombre")
@@ -164,17 +165,40 @@ def mostrar_productos():
     return render_template("productos.html", productos=productos)
 
 @app.route("/usuarios", methods=["GET"])
+@login_required
 def mostrar_usuarios():
+    user = current_user
+    if user.admin == "si" :
+        session['mensaje_admin'] = "usuario eliminado"
+        
+        # Obtener los datos del formulario
+        id_ = int(request.args.get("id_"))
 
-    consulta = "SELECT * FROM usuarios"
+        comprobar_usuario =f"""SELECT * FROM usuarios WHERE id ='{id_}'; """
+        cursor.execute(comprobar_usuario)
+        admin = cursor.fetchall()
 
-    
-    cursor.execute(consulta)
+        if admin[0][4] =="no":
+            # Insertar el nuevo producto en la base de datos
+            consulta = f"""
+            DELETE FROM usuarios WHERE id ='{id_}';
+            """
+            cursor.execute(consulta)
 
-    usuarios = cursor.fetchall()
+        
+        # Guardar los cambios en la base de datos
+            conn.commit()
 
-    #return render_template("productos.html", productos=productos)
-    return jsonify(usuarios)
+            #mensaje afirmativo
+            session['mensaje_admin'] = "usuario eliminado"
+            return redirect("/admin")
+        else :
+            session['mensaje_admin'] = "no puedes borrar a un usario que es admin"
+            return redirect("/admin")
+        
+     
+    else :
+        return render_template("error_admin.html")
 
 
 #producto por id
@@ -223,26 +247,34 @@ def guardar_producto():
     conn.commit()
     #cursor.lastrowid
     respuesta = {'mensaje': 'producto guardado'}
-    return jsonify(respuesta), 200 
+    return redirect("/admin")
 
 #guardar producto
-@app.route("/elminar_producto", methods=["DELETE"])
+@app.route("/elminar_producto", methods=["GET"])
+@login_required
 def elimina_producto():
-    # Obtener los datos del formulario
-    id_ = request.form["id_"]
+    user = current_user
+    if user.admin == "si" :
+        session['mensaje_admin'] = "producto eliminado"
+        # Obtener los datos del formulario
+        id_ = request.args.get("id_")
 
-    # Insertar el nuevo producto en la base de datos
-    consulta = f"""
-    DELETE FROM products WHERE id ='{id_}';
-    """
-    cursor.execute(consulta)
+        # Insertar el nuevo producto en la base de datos
+        consulta = f"""
+        DELETE FROM products WHERE id ='{id_}';
+        """
+        cursor.execute(consulta)
 
-    
-    # Guardar los cambios en la base de datos
-    conn.commit()
-    
-    respuesta = {'mensaje': 'producto eliminado'}
-    return jsonify(respuesta), 200 
+        
+        # Guardar los cambios en la base de datos
+        conn.commit()
+        return redirect("/admin")
+        
+        """ respuesta = {'mensaje': 'producto eliminado'}
+        return render_template("admin.html",mensaje=respuesta) """
+    else :
+        return render_template("error_admin.html")
+
 
 @app.route("/editar_producto", methods=["POST"])
 def editar_producto():
@@ -288,14 +320,129 @@ def editar_producto():
     # Ejecutar la consulta SQL y guardar los cambios
     cursor.execute(consulta, valores_actualizados)
   
-      
+
+
+#carrito
+@app.route("/carrito", methods=["GET"])
+@login_required
+def mostrar_carrito():
+    user = current_user
+    usuario_id = session.get('usuario_id')
+    consulta = f"""SELECT c.id,c.cantidad,c.product_id ,p.name ,p.price , p.description,p.category, p.stock FROM carrito AS c JOIN products AS p ON c.product_id = p.id WHERE c.user_id={user.id} """
+    #WHERE user_id = {user.id}
+    
+    cursor.execute(consulta)
+    productos = cursor.fetchall()
+
+ 
+
+    return render_template("carrito.html", productos=productos)
+    #return jsonify(producto)
+    #return jsonify(productos)
+
+@app.route("/carrito_eliminar/<int:producto_id>", methods=["GET"])
+@login_required
+def eliminar_carrito(producto_id):
+    consulta = f""" DELETE FROM carrito WHERE id = '{producto_id}' """
+
+    
+    cursor.execute(consulta)
+
+    # Guardar los cambios en la base de datos
+    conn.commit()
+
+    mensaje = {'mensaje':"producto eliminado"}
+
+
+    return render_template("carrito.html", mensaje=mensaje)
+    #return jsonify(usuarios)
+
+@app.route("/carrito_aumentar", methods=["GET"])
+@login_required
+def aumentar_carrito():
+    user = current_user
+    cantidad = request.args.get("cantidad")
+    consulta = f"""
+    UPDATE carrito
+    SET cantidad = {cantidad}
+    WHERE id = {user.id}
+    """
+
+    
+    cursor.execute(consulta)
+
+    # Guardar los cambios en la base de datos
+    conn.commit()
+
+    mensaje = {'mensaje':"producto eliminado"}
+
+    return redirect("/carrito")
+    #return render_template("carrito.html", mensaje=mensaje)
+    #return jsonify(usuarios)
+
+@app.route("/añadir_carrito", methods=["GET"])
+@login_required
+def añadir_carrito():
+    user = current_user
+    product_id = request.args.get("product_id")
+    cantidad = request.args.get("cantidad")
+    confi = f"""
+    SELECT * FROM carrito WHERE product_id={product_id};
+    """
+    cursor.execute(confi)
+    confipro = cursor.fetchall()
+    if confipro :
+        ruta=f"/carrito_aumentar?cantidad={cantidad}"
+        return redirect(ruta)
+    else:    
+        consulta = f"""
+        INSERT INTO carrito (user_id,product_id,cantidad) VALUES ('{user.id}','{product_id}','{cantidad}');
+        """
+        cursor.execute(consulta)
+
+        # Guardar los cambios en la base de datos
+        conn.commit()
+
+        mensaje = {'mensaje':"producto agregados"}
+
+
+        return redirect("/carrito")
+        #return jsonify(mensaje)
+
+#admin
+@app.route("/admin", methods=["GET"])
+@login_required
+def admin():
+    user = current_user
+    if user.admin == "si" :
+        mensaje = session.get('mensaje_admin')
+        #buscamos usuarios
+        consulta = "SELECT * FROM usuarios"
+        cursor.execute(consulta)
+        usuarios = cursor.fetchall()
+        #buscamos productos
+        consulta2 = "SELECT * FROM products"
+        cursor.execute(consulta2)
+        productos = cursor.fetchall()
+        # Guardar los cambios en la base de datos
+        conn.commit()
+
+        datos = {
+            'usuarios':usuarios,
+            'productos':productos ,
+            'mensaje':  mensaje             
+        }
+
+        return render_template("admin.html", datos=datos )
+
+
 
 def status_401(error):
-    return redirect("/registros")
+    return render_template("error_admin.html" )
 
 
 
-
+#carrito
 if __name__ == '__main__':
     app.register_error_handler(401,status_401)
     app.run(debug=True)  # Set debug=False for production
