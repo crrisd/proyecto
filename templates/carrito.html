@@ -16,17 +16,26 @@
 
     {%endif %}
     {% for producto in productos %}
-        <div class="producto">
-            <h2>{{ producto}}</h2>
-            <p>{{ producto.description }}</p>
-            <a href="/carrito_eliminar/{{ producto[0] }}">eliminar</a>
-            <form action="/carrito_aumentar" method="POST">
-                <div class="form-group">
-                    <label for="cantidad">nueva cantidad:</label>
-                    <input type="number" id="cantidad" name="cantidad" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-primary">cambiar</button>
-            </form>
+    <div class="card" style="width: 18rem;">
+        <img src="{{ url_for('static', filename='OIP.jpeg') }}" alt="..." class="card-img-top">
+        <div class="card-body">
+           
+          <h5>{{producto[3]}}</h5>
+          <p class="card-text">cantidad:{{producto[1]}}</p>
+          <p class="card-text">precio:{{producto[4]}}</p>
+          <p class="card-text">descripcion:{{producto[5]}}</p>
+          <p class="card-text">categoria:{{producto[6]}}</p>
+          <p class="card-text">stock:{{producto[7]}}</p>
+          <a href="/carrito_eliminar/{{ producto[0] }}" class="btn btn-primary">eliminar </a>
+          <form action="/carrito_aumentar?producto={{producto[8]}}" method="GET">
+            <div class="form-group">
+                <label for="cantidad">nueva cantidad:</label>
+                <input type="number" id="cantidad" name="cantidad" class="form-control" required>
+            </div>
+            <input type="hidden" id="producto" name="producto" value="{{producto[8]}}">
+
+            <button type="submit" class="btn btn-primary">cambiar</button>
+        </form>
         </div>
        
     {% endfor %}

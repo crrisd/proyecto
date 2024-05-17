@@ -7,6 +7,11 @@ from models import User
 
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = os.urandom(24)
+# Set the static folder path (customize as needed)
+app.config['STATIC_FOLDER'] = 'static'  # Default location for static files
+
+# Configure the URL prefix for accessing static files
+app.config['STATIC_URL'] = '../static'
 
 # Conexión a la base de datos
 conn = psycopg2.connect("postgres://proyecto_zu82_user:E1jOM8eQgfWK7ruNp7EhJkeyw2Bez0CJ@dpg-cp04rk21hbls73e44f2g-a.oregon-postgres.render.com/proyecto_zu82")
@@ -161,8 +166,16 @@ def mostrar_productos():
     cursor.execute(consulta, valores_filtro) if condiciones else cursor.execute(consulta)
 
     productos = cursor.fetchall()
+    usuario_nombre = session.get('usuario_nombre')
+    usuario_email = session.get('usuario_email')
+    user = current_user
+     # Crea un diccionario con los datos del usuario (opcional)
+    if usuario_nombre and usuario_email:
+        usuario = user
+    else :    
+        usuario = False
 
-    return render_template("productos.html", productos=productos)
+    return render_template("productos.html", productos=productos,usuario=usuario)
 
 @app.route("/usuarios", methods=["GET"])
 @login_required
@@ -279,7 +292,7 @@ def elimina_producto():
 @app.route("/editar_producto", methods=["POST"])
 def editar_producto():
     # Obtener el ID del producto del formulario
-    producto_id = int(request.form.get("producto_id"))
+    producto_id = int(request.form.get("id_product"))
 
     # Obtener los datos actualizados del producto del formulario
     nombre = request.form.get("nombre")
@@ -290,22 +303,18 @@ def editar_producto():
     id
     
 
-    # Preparar la consulta SQL para actualizar
-    consulta = f"""
-        UPDATE products
-        SET 
-    """
+    
 
     valores_actualizados = []
 
     if nombre:
-        valores_actualizados.append(f"nombre LIKE '%{nombre}%'")
+        valores_actualizados.append(f"name = '{nombre}'")
 
     if precio:
-        valores_actualizados.append(f"precio = {precio}")
+        valores_actualizados.append(f"price = {precio}")
     
     if descripcion:
-        valores_actualizados.append(f"precio = {descripcion}")
+        valores_actualizados.append(f"description = {descripcion}")
 
     if category:
         valores_actualizados.append(f"category = '{category}'")
@@ -313,12 +322,18 @@ def editar_producto():
     if stock:
         valores_actualizados.append(f"stock = {stock}")
 
-
+    # Preparar la consulta SQL para actualizar
+    consulta = f"""
+        UPDATE products
+        SET 
+    """
     # Completar la consulta SQL
-    consulta += f" WHERE id = {producto_id}"
+    consulta += ", ".join(valores_actualizados)
+    consulta += f" WHERE id = '{producto_id}'"
 
     # Ejecutar la consulta SQL y guardar los cambios
-    cursor.execute(consulta, valores_actualizados)
+    cursor.execute(consulta)
+    return redirect("/admin")
   
 
 
@@ -328,7 +343,7 @@ def editar_producto():
 def mostrar_carrito():
     user = current_user
     usuario_id = session.get('usuario_id')
-    consulta = f"""SELECT c.id,c.cantidad,c.product_id ,p.name ,p.price , p.description,p.category, p.stock FROM carrito AS c JOIN products AS p ON c.product_id = p.id WHERE c.user_id={user.id} """
+    consulta = f"""SELECT c.id,c.cantidad,c.product_id ,p.name ,p.price , p.description,p.category, p.stock , p.id FROM carrito AS c JOIN products AS p ON c.product_id = p.id WHERE c.user_id={user.id} """
     #WHERE user_id = {user.id}
     
     cursor.execute(consulta)
@@ -361,11 +376,12 @@ def eliminar_carrito(producto_id):
 @login_required
 def aumentar_carrito():
     user = current_user
-    cantidad = request.args.get("cantidad")
+    cantidad = int(request.args.get("cantidad"))
+    producto = request.args.get("producto")
     consulta = f"""
     UPDATE carrito
     SET cantidad = {cantidad}
-    WHERE id = {user.id}
+    WHERE user_id = {user.id} AND product_id = {producto}
     """
 
     
